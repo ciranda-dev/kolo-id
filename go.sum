@@ -1,0 +1,4 @@
+github.com/ciranda-dev/kolo-codec v0.1.0 h1:0RhHGMxXDLqQAI3Uq6iGPANjC5ZJ9ZQwc65sLY0keRw=
+github.com/ciranda-dev/kolo-codec v0.1.0/go.mod h1:DXHN3Hq7lpiB5/U7TLmDRKKAa/6jtys68d9PwFCjpDU=
+golang.org/x/sys v0.50.0 h1:dkKZEFTEKaLr1sjhs0WiKqoi8Jj5nHbS3Njmx1UoMJs=
+golang.org/x/sys v0.50.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=

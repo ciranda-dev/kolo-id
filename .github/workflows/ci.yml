@@ -1,0 +1,107 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checks:
+    name: checks (go ${{ matrix.go }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        go: ["1.26", "stable"]
+        include:
+          - os: macos-latest
+            go: stable
+          - os: windows-latest
+            go: stable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+          cache-dependency-path: go.mod
+
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "$out"; exit 1; fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go vet (windows)
+        if: runner.os == 'Linux'
+        run: GOOS=windows go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go test (owner checks as root)
+        if: runner.os == 'Linux'
+        run: sudo env "PATH=$PATH" "$(go env GOROOT)/bin/go" test -count=1 -run 'Owner|TestLoadDeviceSwappedAfterStat' ./...
+
+      - name: go test -race
+        if: runner.os != 'Windows'
+        run: go test -race ./...
+
+      - name: go test (32-bit)
+        if: runner.os == 'Linux'
+        run: GOARCH=386 go test ./...
+
+      - name: build without cgo
+        run: CGO_ENABLED=0 go build ./...
+
+      - name: fuzz the macOS ACL parser for 20s
+        if: runner.os == 'macOS'
+        run: go test -run='^$' -fuzz='^FuzzACLReply$' -fuzztime=20s -fuzzminimizetime=5s ./internal/keyfile
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: true
+          cache-dependency-path: go.mod
+
+      - name: fuzz each target for 20s
+        run: |
+          pkgs=$(go list ./...)
+          n=0
+          for p in $pkgs; do
+            targets=$(go test -list '^Fuzz' "$p")
+            for f in $(printf '%s\n' "$targets" | grep '^Fuzz' || true); do
+              echo "== $p $f"
+              go test -run='^$' -fuzz="^${f}\$" -fuzztime=20s -fuzzminimizetime=5s "$p"
+              n=$((n+1))
+            done
+          done
+          if [ "$n" -eq 0 ]; then
+            echo "no fuzz targets found"
+            exit 1
+          fi
+
+      - name: upload failing inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-failures
+          path: '**/testdata/fuzz'
+          if-no-files-found: ignore
