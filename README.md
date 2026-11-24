@@ -8,7 +8,7 @@ Ed25519 node identity for Kolo.
 
 ## What it is
 
-A Kolo node is known by its Ed25519 public key. kolo-id signs with Ed25519ctx from [RFC 8032](https://www.rfc-editor.org/info/rfc8032), and turns a 24-word recovery phrase into a person key with [BIP-39](https://github.com/bitcoin/bips/blob/0d1b892ddb21c22def4af4541bfed7a2a3480e4a/bip-0039.mediawiki) and [SLIP-0010](https://github.com/satoshilabs/slips/blob/a00312491693714d9bc1b6e4cb5b2e356e6c511e/slip-0010.md). It creates and stores the node key pair, signs messages and checks signatures from other peers. Only the 32-byte seed is stored on disk, in a file that is written with mode 0600 and checked again when it is loaded.
+A Kolo node is known by its Ed25519 public key. kolo-id signs with Ed25519ctx from [RFC 8032](https://www.rfc-editor.org/info/rfc8032), and turns a 24-word recovery phrase into a person key with [BIP-39](https://github.com/bitcoin/bips/blob/0d1b892ddb21c22def4af4541bfed7a2a3480e4a/bip-0039.mediawiki) and [SLIP-0010](https://github.com/satoshilabs/slips/blob/a00312491693714d9bc1b6e4cb5b2e356e6c511e/slip-0010.md). It creates and stores the node key pair, signs messages and checks signatures from other peers. Only the 32-byte seed is stored on disk, unencrypted, in a file that is written with mode 0600 and checked again when it is loaded.
 
 Every signature carries a context string, so a signature made for one protocol or message type is never accepted by another.
 
